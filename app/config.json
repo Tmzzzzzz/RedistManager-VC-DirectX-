@@ -1,0 +1,197 @@
+{
+  "appName": "运行库管理工具",
+  "appVersion": "1.1.0",
+  "downloadDir": "%TEMP%\\VCRedistManager",
+  "signatureSubject": "Microsoft Corporation",
+
+  "modules": {
+    "vc": {
+      "necessityRules": {
+        "required": {
+          "label": "必要",
+          "color": "#2E7D32",
+          "reason": "绝大多数现代软件 / 游戏依赖，强烈建议安装",
+          "defaultChecked": true
+        },
+        "optional": {
+          "label": "可选",
+          "color": "#1565C0",
+          "reason": "部分老软件 / 老游戏依赖，按需安装",
+          "defaultChecked": false
+        },
+        "notRecommended": {
+          "label": "不推荐",
+          "color": "#C62828",
+          "reason": "仅极少数遗留软件需要，且存在历史安全隐患",
+          "defaultChecked": false
+        }
+      },
+      "versions": [
+        {
+          "id": "vc2015-2022",
+          "name": "VC 2015-2022",
+          "internalVersion": "14.x",
+          "necessity": "required",
+          "note": "现代软件标准依赖（2015 / 2017 / 2019 / 2022 为同一合并包）",
+          "dllCheckMode": "system",
+          "dlls": ["vcruntime140.dll", "msvcp140.dll", "vcruntime140_1.dll"],
+          "installers": {
+            "x86": {
+              "fileName": "vc_redist.x86.exe",
+              "url": "https://aka.ms/vs/17/release/vc_redist.x86.exe",
+              "sha256": "0C09F2611660441084CE0DF425C51C11E147E6447963C3690F97E0B25C55ED64",
+              "installArgs": ["/install", "/quiet", "/norestart"],
+              "uninstallArgs": ["/uninstall", "/quiet", "/norestart"]
+            },
+            "x64": {
+              "fileName": "vc_redist.x64.exe",
+              "url": "https://aka.ms/vs/17/release/vc_redist.x64.exe",
+              "sha256": "CC0FF0EB1DC3F5188AE6300FAEF32BF5BEEBA4BDD6E8E445A9184072096B713B",
+              "installArgs": ["/install", "/quiet", "/norestart"],
+              "uninstallArgs": ["/uninstall", "/quiet", "/norestart"]
+            }
+          }
+        },
+        {
+          "id": "vc2013",
+          "name": "VC 2013",
+          "internalVersion": "12.0",
+          "necessity": "required",
+          "note": "仍被大量软件使用",
+          "dllCheckMode": "system",
+          "dlls": ["msvcp120.dll", "msvcr120.dll"],
+          "installers": {
+            "x86": {
+              "fileName": "vcredist_2013_x86.exe",
+              "url": "https://download.microsoft.com/download/0/5/6/056dcda9-d667-4e27-8001-8a0c6971d6b1/vcredist_x86.exe",
+              "sha256": "89F4E593EA5541D1C53F983923124F9FD061A1C0C967339109E375C661573C17",
+              "installArgs": ["/install", "/quiet", "/norestart"],
+              "uninstallArgs": ["/uninstall", "/quiet", "/norestart"]
+            },
+            "x64": {
+              "fileName": "vcredist_2013_x64.exe",
+              "url": "https://download.microsoft.com/download/0/5/6/056dcda9-d667-4e27-8001-8a0c6971d6b1/vcredist_x64.exe",
+              "sha256": "20E2645B7CD5873B1FA3462B99A665AC8D6E14AAE83DED9D875FEA35FFDD7D7E",
+              "installArgs": ["/install", "/quiet", "/norestart"],
+              "uninstallArgs": ["/uninstall", "/quiet", "/norestart"]
+            }
+          }
+        },
+        {
+          "id": "vc2012",
+          "name": "VC 2012",
+          "internalVersion": "11.0",
+          "necessity": "optional",
+          "note": "较少软件依赖",
+          "dllCheckMode": "system",
+          "dlls": ["msvcp110.dll", "msvcr110.dll"],
+          "installers": {
+            "x86": {
+              "fileName": "vcredist_2012_x86.exe",
+              "url": "https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x86.exe",
+              "sha256": "B924AD8062EAF4E70437C8BE50FA612162795FF0839479546CE907FFA8D6E386",
+              "installArgs": ["/install", "/quiet", "/norestart"],
+              "uninstallArgs": ["/uninstall", "/quiet", "/norestart"]
+            },
+            "x64": {
+              "fileName": "vcredist_2012_x64.exe",
+              "url": "https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x64.exe",
+              "sha256": "681BE3E5BA9FD3DA02C09D7E565ADFA078640ED66A0D58583EFAD2C1E3CC4064",
+              "installArgs": ["/install", "/quiet", "/norestart"],
+              "uninstallArgs": ["/uninstall", "/quiet", "/norestart"]
+            }
+          }
+        },
+        {
+          "id": "vc2010",
+          "name": "VC 2010",
+          "internalVersion": "10.0",
+          "necessity": "optional",
+          "note": "老游戏 / 老工具常见（含 SP1）",
+          "dllCheckMode": "system",
+          "dlls": ["msvcp100.dll", "msvcr100.dll"],
+          "installers": {
+            "x86": {
+              "fileName": "vcredist_2010_x86.exe",
+              "url": "https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x86.exe",
+              "sha256": "99DCE3C841CC6028560830F7866C9CE2928C98CF3256892EF8E6CF755147B0D8",
+              "installArgs": ["/install", "/quiet", "/norestart"],
+              "uninstallArgs": ["/uninstall", "/quiet", "/norestart"]
+            },
+            "x64": {
+              "fileName": "vcredist_2010_x64.exe",
+              "url": "https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x64.exe",
+              "sha256": "F3B7A76D84D23F91957AA18456A14B4E90609E4CE8194C5653384ED38DADA6F3",
+              "installArgs": ["/install", "/quiet", "/norestart"],
+              "uninstallArgs": ["/uninstall", "/quiet", "/norestart"]
+            }
+          }
+        },
+        {
+          "id": "vc2008",
+          "name": "VC 2008",
+          "internalVersion": "9.0",
+          "necessity": "optional",
+          "note": "较老软件（含 SP1）",
+          "dllCheckMode": "winsxs",
+          "dlls": ["msvcp90.dll", "msvcr90.dll"],
+          "winsxsPattern": "microsoft.vc90",
+          "installers": {
+            "x86": {
+              "fileName": "vcredist_2008_x86.exe",
+              "url": "https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x86.exe",
+              "sha256": "8742BCBF24EF328A72D2A27B693CC7071E38D3BB4B9B44DEC42AA3D2C8D61D92",
+              "installArgs": ["/q"],
+              "uninstallArgs": ["/uninstall", "/quiet", "/norestart"]
+            },
+            "x64": {
+              "fileName": "vcredist_2008_x64.exe",
+              "url": "https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x64.exe",
+              "sha256": "C5E273A4A16AB4D5471E91C7477719A2F45DDADB76C7F98A38FA5074A6838654",
+              "installArgs": ["/q"],
+              "uninstallArgs": ["/uninstall", "/quiet", "/norestart"]
+            }
+          }
+        },
+        {
+          "id": "vc2005",
+          "name": "VC 2005",
+          "internalVersion": "8.0",
+          "necessity": "notRecommended",
+          "note": "最老，仅极少数遗留软件需要，存在历史安全隐患（含 SP1）",
+          "dllCheckMode": "winsxs",
+          "dlls": ["msvcp80.dll", "msvcr80.dll"],
+          "winsxsPattern": "microsoft.vc80",
+          "installers": {
+            "x86": {
+              "fileName": "vcredist_2005_x86.exe",
+              "url": "https://download.microsoft.com/download/8/B/4/8B42259F-5D70-43F4-AC2E-4B208FD8D66A/vcredist_x86.EXE",
+              "sha256": "8648C5FC29C44B9112FE52F9A33F80E7FC42D10F3B5B42B2121542A13E44ADFD",
+              "installArgs": ["/q"],
+              "uninstallArgs": ["/uninstall", "/quiet", "/norestart"]
+            },
+            "x64": {
+              "fileName": "vcredist_2005_x64.exe",
+              "url": "https://download.microsoft.com/download/8/B/4/8B42259F-5D70-43F4-AC2E-4B208FD8D66A/vcredist_x64.EXE",
+              "sha256": "4487570BD86E2E1AAC29DB2A1D0A91EB63361FCAAC570808EB327CD4E0E2240D",
+              "installArgs": ["/q"],
+              "uninstallArgs": ["/uninstall", "/quiet", "/norestart"]
+            }
+          }
+        }
+      ]
+    },
+
+    "directx": {
+      "name": "DirectX 运行库（DX9/10/11 旧组件）",
+      "note": "旧游戏/软件依赖的 DirectX 9/10/11 组件（d3dx9_43.dll、xinput1_3.dll 等），Windows 10/11 默认不含",
+      "necessity": "optional",
+      "dlls": ["d3dx9_43.dll", "d3dx10_43.dll", "d3dx11_43.dll", "d3dcompiler_43.dll", "xinput1_3.dll", "XAudio2_7.dll"],
+      "installer": {
+        "fileName": "directx_Jun2010_redist.exe",
+        "url": "https://download.microsoft.com/download/8/4/A/84A35BF1-DAFE-4AE8-82AF-AD2AE20B6B14/directx_Jun2010_redist.exe",
+        "sha256": "053F76DCBB28802E23341B6A787E3B0791C0FA5C8D4D011B1044172DBF89C73B"
+      }
+    }
+  }
+}
