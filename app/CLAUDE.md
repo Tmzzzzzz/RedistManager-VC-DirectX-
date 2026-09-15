@@ -8,14 +8,14 @@ Windows 桌面 GUI 工具，管理微软 VC 2005-2022 / DirectX 等运行库：*
 
 ## 架构（模块化，切勿把新运行库写死进主程序）
 
-- `RedistManager.ps1`：薄 GUI 壳，**模块无关**。页签 / 检测 / 安装 / 卸载 / 修复 / 报告全部由「模块注册表」驱动。
-- `RedistManager.Core.psm1`：共享基础设施 + 模块自动发现（`Initialize-RedistModules`）+ 分发（`Get-AllModuleDetection` / `Invoke-ModuleOperation` / `Invoke-AllModuleActions`）。
-- `Modules/*.psm1`：每个运行库模块一个文件，按下面「模块契约」实现。**加一个模块 = 加一个文件**，其余自动接上。
-- `config.json`：顶层共享配置（`appName` / `appVersion` / `downloadDir` / `signatureSubject`）+ `modules.{id}`。
+- `src/RedistManager.ps1`：薄 GUI 壳，**模块无关**。页签 / 检测 / 安装 / 卸载 / 修复 / 报告全部由「模块注册表」驱动。
+- `src/RedistManager.Core.psm1`：共享基础设施 + 模块自动发现（`Initialize-RedistModules`）+ 分发（`Get-AllModuleDetection` / `Invoke-ModuleOperation` / `Invoke-AllModuleActions`）。
+- `src/Modules/*.psm1`：每个运行库模块一个文件，按下面「模块契约」实现。**加一个模块 = 加一个文件**，其余自动接上。
+- `src/config.json`：顶层共享配置（`appName` / `appVersion` / `downloadDir` / `signatureSubject`）+ `modules.{id}`。
 
 ## 模块契约（必须遵守）
 
-文件名 `Modules/<Id>.psm1`，`<Id>` 为 PascalCase（如 `Vc`、`DirectX`），小写后即模块 Id。只导出 4 个函数（`Export-ModuleMember` 只列这 4 个，其余内部函数保持私有）：
+文件名 `src/Modules/<Id>.psm1`，`<Id>` 为 PascalCase（如 `Vc`、`DirectX`），小写后即模块 Id。只导出 4 个函数（`Export-ModuleMember` 只列这 4 个，其余内部函数保持私有）：
 
 | 函数 | 参数 / 返回 |
 |---|---|
@@ -40,6 +40,7 @@ Windows 桌面 GUI 工具，管理微软 VC 2005-2022 / DirectX 等运行库：*
 3. 卸载、覆盖重装是破坏性操作，**必须二次确认**。
 4. 不修改系统 PATH、不删除 WinSxS 共享组件、不自启、不留后台常驻进程。
 5. **含中文的 `.ps1` / `.psm1` 必须保存为 UTF-8 with BOM**；`config.json` 必须 UTF-8 **无** BOM。（否则中文 Windows GBK 代码页下会乱码并导致语法错误。）
+6. **`build/` 下的构建脚本（`Build-Exe.ps1`、`Convert-Icon.ps1`）一律用英文注释、不写中文**：它们无 BOM、由 powershell.exe 直接执行，写中文会踩 GBK 代码页坑。`Bootstrapper.cs` 内允许中文（编译时已用 `/codepage:65001` 处理）。
 
 ## 关键坑（容易踩，勿重犯）
 
@@ -50,22 +51,25 @@ Windows 桌面 GUI 工具，管理微软 VC 2005-2022 / DirectX 等运行库：*
 
 ## 添加新模块步骤（清单）
 
-1. 复制 `Modules/DirectX.psm1` → `Modules/<New>.psm1`，把文件名基名和 4 个导出函数的前缀全局改为 `<New>`。
+1. 复制 `src/Modules/DirectX.psm1` → `src/Modules/<New>.psm1`，把文件名基名和 4 个导出函数的前缀全局改为 `<New>`。
 2. 改 `Get-<New>Manifest` 的 `Title / Kind / Order`。
 3. 实现 `Get-<New>Detection` / `Invoke-<New>Action` / `Get-<New>Report`。
-4. （可选）在 `config.json` 的 `modules` 下加 `<new>`（小写）配置段。
-5. 保存为 UTF-8 with BOM，运行 `Build-Exe.ps1` 重新打包。
+4. （可选）在 `src/config.json` 的 `modules` 下加 `<new>`（小写）配置段。
+5. 保存为 UTF-8 with BOM，运行 `build/Build-Exe.ps1` 重新打包。
 
-**无需改动 `RedistManager.ps1` / `Core.psm1`。**
+**无需改动 `src/RedistManager.ps1` / `src/RedistManager.Core.psm1`。**
 
 ## 构建 / 校验命令
 
 ```powershell
-# 重新生成 exe（自动 glob Modules/*.psm1 并嵌入）
-powershell -NoProfile -ExecutionPolicy Bypass -File .\Build-Exe.ps1
+# 重新生成 exe（自动 glob src/Modules/*.psm1 并嵌入，且 /win32icon 嵌入 assets/app.ico）
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build\Build-Exe.ps1
+
+# 重新生成多尺寸图标 assets/app.ico（替换 assets/logo.jpeg 后运行）
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build\Convert-Icon.ps1
 
 # 语法校验（应为 0 errors）
-[System.Management.Automation.Language.Parser]::ParseFile('.\RedistManager.ps1', [ref]$t, [ref]$e); $e.Count
+[System.Management.Automation.Language.Parser]::ParseFile('.\src\RedistManager.ps1', [ref]$t, [ref]$e); $e.Count
 ```
 
 交付物是单个 `RedistManager.exe`（双击运行，解压到 `%LOCALAPPDATA%\RedistManager\`）。

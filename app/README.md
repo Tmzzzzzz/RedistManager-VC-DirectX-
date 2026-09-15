@@ -22,14 +22,20 @@
 ```
 app/
 ├── RedistManager.exe          # ★ 交付物：双击启动（自包含，无 cmd / 无控制台）
-├── RedistManager.ps1          # 源码（主程序 WPF 入口，模块无关，嵌入 exe，UTF-8 BOM）
-├── RedistManager.Core.psm1    # 源码（共享基础设施 + 模块注册表 / 分发，UTF-8 BOM）
-├── Modules/                     # ★ 运行库模块（每个模块一个 .psm1，自动被发现）
-│   ├── Vc.psm1                  #   VC 运行库模块（检测 / 安装 / 卸载 / 报告）
-│   └── DirectX.psm1             #   DirectX 运行库模块（检测 / 修复 / 报告）
-├── config.json                  # 源码（顶层共享配置 + modules.{id} 各模块配置，嵌入 exe）
-├── Bootstrapper.cs              # 启动器源码（编译 exe 用，自动解压全部嵌入资源）
-├── Build-Exe.ps1                # 重新构建 exe 的脚本（自动 glob Modules/*.psm1）
+├── src/                         # ★ 运行时源码
+│   ├── RedistManager.ps1        #   主程序 WPF 入口（模块无关，嵌入 exe，UTF-8 BOM）
+│   ├── RedistManager.Core.psm1  #   共享基础设施 + 模块注册表 / 分发（UTF-8 BOM）
+│   ├── Modules/                 #   运行库模块（每个模块一个 .psm1，自动被发现）
+│   │   ├── Vc.psm1              #     VC 运行库模块（检测 / 安装 / 卸载 / 报告）
+│   │   └── DirectX.psm1         #     DirectX 运行库模块（检测 / 修复 / 报告）
+│   └── config.json              #   顶层共享配置 + modules.{id} 各模块配置（嵌入 exe）
+├── build/                       # ★ 构建工具
+│   ├── Bootstrapper.cs          #   启动器源码（编译 exe 用，自动解压全部嵌入资源）
+│   ├── Build-Exe.ps1            #   重新构建 exe 的脚本（自动 glob src/Modules/*.psm1）
+│   └── Convert-Icon.ps1         #   由 assets/logo.jpeg 生成 assets/app.ico
+├── assets/                      # ★ 图标素材
+│   ├── logo.jpeg                #   原始图标素材
+│   └── app.ico                  #   多尺寸图标（嵌入 exe）
 ├── CLAUDE.md                    # 项目约定（模块契约 / 安全 / 编码约束，供 agent 遵循）
 └── README.md
 ```
@@ -43,9 +49,9 @@ app/
 **双击 `RedistManager.exe`** 即可，无需 cmd、无控制台窗口、无第三方运行库依赖。
 
 > 工作原理：exe 内嵌了全部 PowerShell 源码，首次运行时解压到 `%LOCALAPPDATA%\RedistManager\` 并在当前 STA 线程上托管运行。
-> - 源码改动后，运行 `.\Build-Exe.ps1` 重新生成 exe。
+> - 源码改动后，运行 `.\build\Build-Exe.ps1` 重新生成 exe。
 > - 如需手动更新哈希 / 版本，编辑 `%LOCALAPPDATA%\RedistManager\config.json` 即可（exe 不会覆盖已存在的配置）。
-> - 源码直接运行（开发调试）：`powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\RedistManager.ps1`
+> - 源码直接运行（开发调试）：`powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\src\RedistManager.ps1`
 
 - 首次启动会自动进行「检查全部」，随后在界面右上角显示汇总。
 - 界面采用分级页签，页签由**模块注册表**自动生成（不是写死），当前两个模块并列：
@@ -188,12 +194,12 @@ DirectX 安装流程：下载 → 校验签名/哈希 → 以 `/Q /T:目录` 静
 
 含中文的 `.ps1` / `.psm1` 必须保存为 **UTF-8 with BOM**。否则在中文 Windows（GBK 代码页）下会被按 ANSI 解析，中文乱码并直接导致语法错误。
 
-当前仓库中的 `RedistManager.ps1`、`RedistManager.Core.psm1` 及 `Modules\*.psm1` 均已带 BOM。若自行编辑后出现乱码，请用以下方式重新保存为 UTF-8 BOM：
+当前仓库中的 `src/RedistManager.ps1`、`src/RedistManager.Core.psm1` 及 `src/Modules\*.psm1` 均已带 BOM。若自行编辑后出现乱码，请用以下方式重新保存为 UTF-8 BOM：
 
 ```powershell
 $enc = New-Object System.Text.UTF8Encoding($true)
-$c = [System.IO.File]::ReadAllText('.\RedistManager.ps1')
-[System.IO.File]::WriteAllText('.\RedistManager.ps1', $c, $enc)
+$c = [System.IO.File]::ReadAllText('.\src\RedistManager.ps1')
+[System.IO.File]::WriteAllText('.\src\RedistManager.ps1', $c, $enc)
 ```
 
 ---
@@ -201,18 +207,19 @@ $c = [System.IO.File]::ReadAllText('.\RedistManager.ps1')
 ## 十、打包 / 分发
 
 - **交付（推荐）：** 复制 `RedistManager.exe` 单个文件到目标机，双击即可。零依赖，目标机仅需 Windows 10/11（自带 .NET Framework 4.x + PowerShell 5.1）。
-- **重新构建：** 修改源码后，在 PowerShell 中运行 `.\Build-Exe.ps1`（使用本机 .NET Framework 自带的 `csc.exe` 编译，将 `.ps1`/`.psm1`/`config.json` 重新嵌入）。
-- **自定义图标 / 版本信息：** 编辑 `Bootstrapper.cs` 顶部的 `AssemblyTitle` 等特性后重新构建。
+- **重新构建：** 修改源码后，在 PowerShell 中运行 `.\build\Build-Exe.ps1`（使用本机 .NET Framework 自带的 `csc.exe` 编译，将 `.ps1`/`.psm1`/`config.json` 重新嵌入，并通过 `/win32icon` 自动嵌入 `assets/app.ico`）。
+- **自定义图标：** 替换 `assets/logo.jpeg` 后运行 `.\build\Convert-Icon.ps1`，自动生成多尺寸 `assets/app.ico`（7 档 16/24/32/48/64/128/256，PNG 编码、带透明通道）；随后重新构建即可生效。
+- **版本信息：** 编辑 `build/Bootstrapper.cs` 顶部的 `AssemblyTitle` / `AssemblyVersion` 等特性后重新构建。
 
 ---
 
 ## 十一、如何添加新模块（扩展指南）
 
-要新增一个运行库管理模块（如 .NET Framework、WebView2、Java 等），**只需在 `Modules\` 下加一个 `.psm1` 文件**，其余（页签、检测、安装/卸载/修复、诊断报告、exe 打包）自动接上。
+要新增一个运行库管理模块（如 .NET Framework、WebView2、Java 等），**只需在 `src\Modules\` 下加一个 `.psm1` 文件**，其余（页签、检测、安装/卸载/修复、诊断报告、exe 打包）自动接上。
 
 ### 模块契约
 
-1. **文件名**：`Modules/<Id>.psm1`，`<Id>` 为 PascalCase（如 `Vc`、`DirectX`），小写后即模块 Id（用于控件命名、配置段 key、分发）。
+1. **文件名**：`src/Modules/<Id>.psm1`，`<Id>` 为 PascalCase（如 `Vc`、`DirectX`），小写后即模块 Id（用于控件命名、配置段 key、分发）。
 2. **导出 4 个函数**（`Export-ModuleMember` 只列这 4 个；其余内部函数保持私有）：
 
 | 函数 | 职责 | 参数 / 返回 |
@@ -233,14 +240,14 @@ $c = [System.IO.File]::ReadAllText('.\RedistManager.ps1')
 
 ### 添加步骤清单
 
-1. 复制 `Modules\DirectX.psm1`（或 `Vc.psm1`）为 `Modules\<New>.psm1`；
+1. 复制 `src\Modules\DirectX.psm1`（或 `Vc.psm1`）为 `src\Modules\<New>.psm1`；
 2. 把文件名基名和 4 个导出函数的前缀全局改为 `<New>`；
 3. 改 `Get-<New>Manifest` 的 `Title / Kind / Order`；
 4. 实现 `Get-<New>Detection` / `Invoke-<New>Action` / `Get-<New>Report`；
-5. （可选）在 `config.json` 的 `modules` 下加 `<new>`（小写）配置段；
-6. 保存为 **UTF-8 with BOM**，运行 `Build-Exe.ps1` 重新打包。
+5. （可选）在 `src/config.json` 的 `modules` 下加 `<new>`（小写）配置段；
+6. 保存为 **UTF-8 with BOM**，运行 `build/Build-Exe.ps1` 重新打包。
 
-无需改动 `RedistManager.ps1` / `Core.psm1`——它们会自动发现、注册并按 `Order` 排序生成页签与分发操作。
+无需改动 `src/RedistManager.ps1` / `src/RedistManager.Core.psm1`——它们会自动发现、注册并按 `Order` 排序生成页签与分发操作。
 
 ---
 

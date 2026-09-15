@@ -43,7 +43,7 @@
 
 ```powershell
 # 在仓库根目录下，使用系统自带 csc.exe 重新编译单文件 exe
-powershell -NoProfile -ExecutionPolicy Bypass -File .\app\Build-Exe.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\app\build\Build-Exe.ps1
 ```
 
 构建产物为 `app\RedistManager.exe`。
@@ -51,7 +51,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\app\Build-Exe.ps1
 ### 源码直接运行（开发调试）
 
 ```powershell
-powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\app\RedistManager.ps1
+powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\app\src\RedistManager.ps1
 ```
 
 ---
@@ -63,15 +63,21 @@ powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\app\RedistManager
 ├── LICENSE                      # MIT 开源许可证
 ├── README.md                    # 本文件（仓库首页 / 快速上手）
 └── app/                         # 程序本体
-    ├── RedistManager.exe        # 交付物：单文件 exe（由 Build-Exe.ps1 生成，不入库）
-    ├── RedistManager.ps1        # 主程序（WPF 入口，模块无关）
-    ├── RedistManager.Core.psm1  # 共享基础设施（配置/下载/校验/提权/模块分发）
-    ├── Modules/                 # 运行库模块（自动发现，加一个模块=加一个文件）
-    │   ├── Vc.psm1              # VC 运行库模块
-    │   └── DirectX.psm1         # DirectX 运行库模块
-    ├── config.json              # 顶层共享配置 + 各模块配置（下载源/哈希/必要性规则）
-    ├── Bootstrapper.cs          # C# 启动器源码
-    ├── Build-Exe.ps1            # 重新构建 exe 的脚本
+    ├── RedistManager.exe        # 交付物：单文件 exe（由 build/Build-Exe.ps1 生成，不入库）
+    ├── src/                     # 运行时源码
+    │   ├── RedistManager.ps1    #   主程序（WPF 入口，模块无关）
+    │   ├── RedistManager.Core.psm1  # 共享基础设施（配置/下载/校验/提权/模块分发）
+    │   ├── Modules/             #   运行库模块（自动发现，加一个模块=加一个文件）
+    │   │   ├── Vc.psm1          #     VC 运行库模块
+    │   │   └── DirectX.psm1     #     DirectX 运行库模块
+    │   └── config.json          #   顶层共享配置 + 各模块配置（下载源/哈希/必要性规则）
+    ├── build/                   # 构建工具
+    │   ├── Bootstrapper.cs      #   C# 启动器源码
+    │   ├── Build-Exe.ps1        #   重新构建 exe 的脚本
+    │   └── Convert-Icon.ps1     #   由 assets/logo.jpeg 生成 assets/app.ico
+    ├── assets/                  # 图标素材
+    │   ├── logo.jpeg            #   原始图标素材
+    │   └── app.ico              #   多尺寸图标（嵌入 exe）
     ├── README.md                # 详细文档（功能/检测/卸载机制/扩展指南/FAQ）
     └── CLAUDE.md                # 项目约定（模块契约/安全/编码约束）
 ```
@@ -96,7 +102,7 @@ powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\app\RedistManager
 ## 🛠️ 技术栈
 
 - PowerShell 5.1 + WPF（XAML）
-- C# 启动器（内嵌全部源码，编译为单文件 exe）
+- C# 启动器（内嵌全部源码，编译为单文件 exe，并嵌入多尺寸应用图标）
 - 直接调用注册表、MSI（`msiexec`）、Burn 引导包（Package Cache）、HTTP 下载
 
 ---
@@ -106,7 +112,7 @@ powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\app\RedistManager
 欢迎任何形式的贡献，包括但不限于：
 
 - **提 Issue**：报告 bug、反馈使用问题，或提议新功能 / 新的运行库支持。
-- **提 PR**：新增运行库模块（在 `Modules/` 下加一个 `.psm1` 即可，见 [如何添加新模块](app/README.md#十一如何添加新模块扩展指南)）、修复问题、改进文档。
+- **提 PR**：新增运行库模块（在 `src/Modules/` 下加一个 `.psm1` 即可，见 [如何添加新模块](app/README.md#十一如何添加新模块扩展指南)）、修复问题、改进文档。
 - **维护下载源**：官方安装包会随版本更新，SHA256 需定期核对（见 [下载源与校验](app/README.md#五下载源与校验configjson)）。
 
 动手前请先阅读 [app/CLAUDE.md](app/CLAUDE.md) 中的模块契约与安全 / 编码约束（含中文的 `.ps1` / `.psm1` 必须保存为 UTF-8 with BOM）。
