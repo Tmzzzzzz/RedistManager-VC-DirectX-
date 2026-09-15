@@ -1,5 +1,5 @@
 ﻿# ============================================================
-#  VCRedistManager.Core.psm1
+#  RedistManager.Core.psm1
 #  运行库管理工具 —— 核心基础设施
 #    · 配置加载 / 迁移、日志、下载、签名+SHA256 校验、UAC 提权
 #    · 模块注册表（自动发现 Modules\*.psm1）与分发
@@ -48,29 +48,29 @@ function Get-DownloadDirectory {
 
 # ---------- 日志 ----------
 
-function Write-VCRedistLog {
+function Write-RedistLog {
     param(
         [string]$Message,
         [ValidateSet('INFO', 'WARN', 'ERROR')]
         [string]$Level = 'INFO'
     )
     try {
-        $logDir = Join-Path $env:LOCALAPPDATA 'VCRedistManager\logs'
+        $logDir = Join-Path $env:LOCALAPPDATA 'RedistManager\logs'
         if (-not (Test-Path -LiteralPath $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
         $line = '[{0}] [{1}] {2}' -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $Level, $Message
-        [System.IO.File]::AppendAllText((Join-Path $logDir 'VCRedistManager.log'), $line + "`r`n", [System.Text.Encoding]::UTF8)
+        [System.IO.File]::AppendAllText((Join-Path $logDir 'RedistManager.log'), $line + "`r`n", [System.Text.Encoding]::UTF8)
     } catch { }
 }
 
-function Get-VCRedistLogPath {
-    $logDir = Join-Path $env:LOCALAPPDATA 'VCRedistManager\logs'
+function Get-RedistLogPath {
+    $logDir = Join-Path $env:LOCALAPPDATA 'RedistManager\logs'
     if (-not (Test-Path -LiteralPath $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
-    return (Join-Path $logDir 'VCRedistManager.log')
+    return (Join-Path $logDir 'RedistManager.log')
 }
 
 # ---------- 配置 ----------
 
-function Initialize-VCRedistConfig {
+function Initialize-RedistConfig {
     param([string]$ConfigPath)
     if (-not (Test-Path $ConfigPath)) { throw "找不到配置文件：$ConfigPath" }
     $raw = Get-Content -LiteralPath $ConfigPath -Raw -Encoding UTF8
@@ -96,7 +96,7 @@ function Initialize-VCRedistConfig {
     return $script:Config
 }
 
-function Get-VCRedistConfig {
+function Get-RedistConfig {
     return $script:Config
 }
 
@@ -108,7 +108,7 @@ function Get-ModuleConfig {
 
 # ---------- 模块注册表 ----------
 
-function Initialize-VCRedistModules {
+function Initialize-RedistModules {
     param([string]$ModulesDir)
     $script:Modules = @()
     if (-not (Test-Path -LiteralPath $ModulesDir)) { return $script:Modules }
@@ -122,7 +122,7 @@ function Initialize-VCRedistModules {
             # 模块会被导入到 Core 的会话状态，主脚本 / 各模块函数将无法按命名约定调用。
             Import-Module $f.FullName -Force -Global -ErrorAction Stop
             if (-not (Get-Command $manifestFn -ErrorAction SilentlyContinue)) {
-                Write-VCRedistLog -Message ('模块 {0} 缺少清单函数 {1}，已跳过' -f $f.Name, $manifestFn) -Level WARN
+                Write-RedistLog -Message ('模块 {0} 缺少清单函数 {1}，已跳过' -f $f.Name, $manifestFn) -Level WARN
                 continue
             }
             $manifest = & $manifestFn
@@ -137,18 +137,18 @@ function Initialize-VCRedistModules {
                 ReportFn = "Get-${idCased}Report"
             }
         } catch {
-            Write-VCRedistLog -Message ('模块 {0} 加载失败：{1}' -f $f.Name, $_.Exception.Message) -Level ERROR
+            Write-RedistLog -Message ('模块 {0} 加载失败：{1}' -f $f.Name, $_.Exception.Message) -Level ERROR
         }
     }
     $script:Modules = @($script:Modules | Sort-Object Order, Id)
     return $script:Modules
 }
 
-function Get-VCRedistModules {
+function Get-RedistModules {
     return $script:Modules
 }
 
-function Get-VCRedistModule {
+function Get-RedistModule {
     param([string]$Id)
     return @($script:Modules | Where-Object { $_.Id -eq $Id }) | Select-Object -First 1
 }
@@ -175,7 +175,7 @@ function Get-AllModuleDetection {
 
 function Invoke-ModuleOperation {
     param([string]$ModuleId, [string]$Operation, $Rows, [hashtable]$Sync)
-    $m = Get-VCRedistModule -Id $ModuleId
+    $m = Get-RedistModule -Id $ModuleId
     if (-not $m) { throw "未找到模块：$ModuleId" }
     return (& $m.ActionFn -Operation $Operation -Rows $Rows -Sync $Sync)
 }
@@ -231,7 +231,7 @@ function Get-DllCheckResult {
 
 # ---------- 下载 ----------
 
-function Start-VCRedistDownload {
+function Start-RedistDownload {
     param(
         [string]$Url,
         [string]$DestPath,
@@ -278,8 +278,8 @@ function Start-VCRedistDownload {
     return $downloaded
 }
 
-function Clear-VCRedistCache {
-    if (-not $script:Config) { throw '请先调用 Initialize-VCRedistConfig' }
+function Clear-RedistCache {
+    if (-not $script:Config) { throw '请先调用 Initialize-RedistConfig' }
     $dir = Get-DownloadDirectory
     $removed = 0
     $freed = 0L
@@ -295,7 +295,7 @@ function Clear-VCRedistCache {
 
 # ---------- 校验：签名 + SHA256 ----------
 
-function Test-VCRedistPackage {
+function Test-RedistPackage {
     param(
         [string]$Path,
         [string]$ExpectedSha256 = ''

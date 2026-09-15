@@ -6,7 +6,7 @@
 #    · 导出 4 个函数：Get-VcManifest / Get-VcDetection / Invoke-VcAction / Get-VcReport
 #    · Kind = "Table"（逐行可操作：勾选 + 安装/卸载/检查）
 #    · 依赖 Core 导出的共享函数（Get-ModuleConfig / Get-DllCheckResult /
-#      Start-VCRedistDownload / Test-VCRedistPackage / Invoke-ElevatedProcess 等）
+#      Start-RedistDownload / Test-RedistPackage / Invoke-ElevatedProcess 等）
 #  本文件必须保存为 UTF-8 with BOM。
 # ============================================================
 
@@ -42,7 +42,7 @@ function Resolve-VCArch {
 
 # ---------- 注册表枚举（内部） ----------
 
-function Get-VCRedistRegistryEntries {
+function Get-RedistRegistryEntries {
     $roots = @(
         'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
         'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall'
@@ -89,7 +89,7 @@ function Get-VcDetection {
     $cfg = Get-ModuleConfig -Id 'vc'
     if (-not $cfg) { throw '缺少 VC 模块配置（modules.vc）' }
 
-    $allEntries = Get-VCRedistRegistryEntries
+    $allEntries = Get-RedistRegistryEntries
     $is64 = Test-Is64BitOS
 
     $standard   = @($allEntries | Where-Object { $_.Category -eq 'standard' })
@@ -187,9 +187,9 @@ function Invoke-VcAction {
                     $inst = $r.Installer
                     $dest = Join-Path (Get-DownloadDirectory) $inst.fileName
                     $Sync.StatusText = ('正在下载 {0} ...' -f $name)
-                    Start-VCRedistDownload -Url $inst.url -DestPath $dest -Sync $Sync | Out-Null
+                    Start-RedistDownload -Url $inst.url -DestPath $dest -Sync $Sync | Out-Null
                     $Sync.StatusText = ('正在校验 {0}（数字签名 / SHA256）...' -f $name)
-                    $chk = Test-VCRedistPackage -Path $dest -ExpectedSha256 ([string]$inst.sha256)
+                    $chk = Test-RedistPackage -Path $dest -ExpectedSha256 ([string]$inst.sha256)
                     if (-not $chk.Passed) { throw ('校验失败：签名={0} 哈希={1}' -f $chk.SignatureOk, $chk.HashOk) }
                     $Sync.LogLines += ('  下载完成：{0}（签名：{1}）' -f (Format-Bytes (Get-Item $dest).Length), $chk.SignatureOk) + "`r`n"
                     $Sync.StatusText = ('正在静默安装 {0}（将弹出 UAC 提权）...' -f $name)
@@ -197,16 +197,16 @@ function Invoke-VcAction {
                     if (Test-ExitSuccess $code) {
                         $Sync.LogLines += ('  完成（退出码 {0}）' -f $code) + "`r`n"
                         $results += ('✓ {0}（退出码 {1}）' -f $name, $code)
-                        Write-VCRedistLog -Message ('安装成功：{0}（退出码 {1}）' -f $name, $code) -Level INFO
+                        Write-RedistLog -Message ('安装成功：{0}（退出码 {1}）' -f $name, $code) -Level INFO
                     } else {
                         $Sync.LogLines += ('  返回退出码 {0}（安装可能未成功）' -f $code) + "`r`n"
                         $results += ('✗ {0}（退出码 {1}）' -f $name, $code)
-                        Write-VCRedistLog -Message ('安装未成功：{0}（退出码 {1}）' -f $name, $code) -Level WARN
+                        Write-RedistLog -Message ('安装未成功：{0}（退出码 {1}）' -f $name, $code) -Level WARN
                     }
                 } catch {
                     $Sync.LogLines += ('  失败：{0}' -f $_.Exception.Message) + "`r`n"
                     $results += ('✗ {0}：{1}' -f $name, $_.Exception.Message)
-                    Write-VCRedistLog -Message ('安装失败：{0}：{1}' -f $name, $_.Exception.Message) -Level ERROR
+                    Write-RedistLog -Message ('安装失败：{0}：{1}' -f $name, $_.Exception.Message) -Level ERROR
                 }
                 $Sync.ProgressPercent = 0
                 if ($Sync.CancelRequested) { $results += '⚠ 已取消'; break }
@@ -224,20 +224,20 @@ function Invoke-VcAction {
                 foreach ($entry in $r.Entries) {
                     try {
                         $Sync.StatusText = ('正在卸载 {0}（{1}）...' -f $name, $entry.DisplayVersion)
-                        $r2 = Uninstall-VCRedist $entry
+                        $r2 = Uninstall-Redist $entry
                         if (Test-ExitSuccess $r2.ExitCode) {
                             $Sync.LogLines += ('  ✓ {0}（退出码 {1}）' -f $entry.DisplayVersion, $r2.ExitCode) + "`r`n"
                             $results += ('✓ {0} {1}' -f $name, $entry.DisplayVersion)
-                            Write-VCRedistLog -Message ('卸载成功：{0} {1}（退出码 {2}）' -f $name, $entry.DisplayVersion, $r2.ExitCode) -Level INFO
+                            Write-RedistLog -Message ('卸载成功：{0} {1}（退出码 {2}）' -f $name, $entry.DisplayVersion, $r2.ExitCode) -Level INFO
                         } else {
                             $Sync.LogLines += ('  ✗ {0}：退出码 {1}（卸载可能未成功）' -f $entry.DisplayVersion, $r2.ExitCode) + "`r`n"
                             $results += ('✗ {0} {1}（退出码 {2}）' -f $name, $entry.DisplayVersion, $r2.ExitCode)
-                            Write-VCRedistLog -Message ('卸载未成功：{0} {1}（退出码 {2}）' -f $name, $entry.DisplayVersion, $r2.ExitCode) -Level WARN
+                            Write-RedistLog -Message ('卸载未成功：{0} {1}（退出码 {2}）' -f $name, $entry.DisplayVersion, $r2.ExitCode) -Level WARN
                         }
                     } catch {
                         $Sync.LogLines += ('  ✗ {0}：{1}' -f $entry.DisplayVersion, $_.Exception.Message) + "`r`n"
                         $results += ('✗ {0} {1}：{2}' -f $name, $entry.DisplayVersion, $_.Exception.Message)
-                        Write-VCRedistLog -Message ('卸载失败：{0} {1}：{2}' -f $name, $entry.DisplayVersion, $_.Exception.Message) -Level ERROR
+                        Write-RedistLog -Message ('卸载失败：{0} {1}：{2}' -f $name, $entry.DisplayVersion, $_.Exception.Message) -Level ERROR
                     }
                 }
             }
@@ -249,7 +249,7 @@ function Invoke-VcAction {
 
 # ---------- 卸载命令解析（内部） ----------
 
-function Resolve-VCRedistUninstall {
+function Resolve-RedistUninstall {
     param($Entry)
     $us  = $Entry.UninstallString
     $qus = $Entry.QuietUninstallString
@@ -279,9 +279,9 @@ function Resolve-VCRedistUninstall {
     }
 }
 
-function Uninstall-VCRedist {
+function Uninstall-Redist {
     param($Entry)
-    $cmd = Resolve-VCRedistUninstall $Entry
+    $cmd = Resolve-RedistUninstall $Entry
 
     if ($cmd.Type -eq 'MSI') {
         if (-not $cmd.ProductCode) {

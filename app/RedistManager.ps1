@@ -1,9 +1,9 @@
 ﻿# ============================================================
-#  VCRedistManager.ps1
+#  RedistManager.ps1
 #  运行库管理工具 —— 主程序（WPF GUI 入口，模块无关）
 #
 #  依赖：
-#    · VCRedistManager.Core.psm1（共享基础设施 + 模块注册表 / 分发）
+#    · RedistManager.Core.psm1（共享基础设施 + 模块注册表 / 分发）
 #    · Modules\*.psm1（具体运行库模块，按「模块契约」实现）
 #    · config.json（顶层共享配置 + modules.{id} 各模块配置）
 #
@@ -11,7 +11,7 @@
 #  诊断报告均由模块注册表驱动。新增模块只需在 Modules\ 下加一个 .psm1。
 #
 #  本文件必须保存为 UTF-8 with BOM（见 README）。
-#  启动：powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\VCRedistManager.ps1
+#  启动：powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\RedistManager.ps1
 # ============================================================
 
 $ErrorActionPreference = 'Stop'
@@ -28,16 +28,16 @@ Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase
 
 $script:ScriptDir  = Split-Path -Parent $MyInvocation.MyCommand.Path
-$script:ModulePath = Join-Path $script:ScriptDir 'VCRedistManager.Core.psm1'
+$script:ModulePath = Join-Path $script:ScriptDir 'RedistManager.Core.psm1'
 $script:ConfigPath = Join-Path $script:ScriptDir 'config.json'
 $script:ModulesDir = Join-Path $script:ScriptDir 'Modules'
 
 Import-Module $script:ModulePath -Force
-Initialize-VCRedistConfig -ConfigPath $script:ConfigPath | Out-Null
-Initialize-VCRedistModules -ModulesDir $script:ModulesDir | Out-Null
-$loadedModules = (@(Get-VCRedistModules) | ForEach-Object { $_.Title }) -join '、'
-Write-VCRedistLog -Message ('==== 程序启动（版本 {0}）====' -f (Get-VCRedistConfig).appVersion) -Level INFO
-Write-VCRedistLog -Message ('已加载模块：{0}' -f $loadedModules) -Level INFO
+Initialize-RedistConfig -ConfigPath $script:ConfigPath | Out-Null
+Initialize-RedistModules -ModulesDir $script:ModulesDir | Out-Null
+$loadedModules = (@(Get-RedistModules) | ForEach-Object { $_.Title }) -join '、'
+Write-RedistLog -Message ('==== 程序启动（版本 {0}）====' -f (Get-RedistConfig).appVersion) -Level INFO
+Write-RedistLog -Message ('已加载模块：{0}' -f $loadedModules) -Level INFO
 
 # ---------- 共享状态 ----------
 $script:sync = [hashtable]::Synchronized(@{
@@ -66,8 +66,8 @@ $workerScript = @'
 param($Sync, $ModulePath, $ConfigPath, $ModulesDir)
 $ErrorActionPreference = 'Stop'
 Import-Module $ModulePath -Force
-Initialize-VCRedistConfig -ConfigPath $ConfigPath | Out-Null
-Initialize-VCRedistModules -ModulesDir $ModulesDir | Out-Null
+Initialize-RedistConfig -ConfigPath $ConfigPath | Out-Null
+Initialize-RedistModules -ModulesDir $ModulesDir | Out-Null
 
 try {
     switch ($Sync.Operation) {
@@ -89,7 +89,7 @@ try {
 } catch {
     $Sync.LastError = $_.Exception.Message
     $Sync.LogLines += ('【错误】{0}' -f $_.Exception.Message) + "`r`n"
-    Write-VCRedistLog -Message ('后台操作异常：{0}' -f $_.Exception.Message) -Level ERROR
+    Write-RedistLog -Message ('后台操作异常：{0}' -f $_.Exception.Message) -Level ERROR
 } finally {
     $Sync.IsIndeterminate = $false
     $Sync.ProgressPercent = 0
@@ -249,7 +249,7 @@ function Get-ListTabXaml {
 
 # ---------- 组装完整 XAML ----------
 $tabItemsXaml = ''
-foreach ($m in (Get-VCRedistModules)) {
+foreach ($m in (Get-RedistModules)) {
     if ($m.Kind -eq 'Table') { $tabItemsXaml += Get-TableTabXaml $m }
     else { $tabItemsXaml += Get-ListTabXaml $m }
 }
@@ -351,7 +351,7 @@ function Start-Operation {
     $script:sync.StatusText = '准备中...'
     $script:LastBusy = $false
     $CancelBtn.IsEnabled = ($Operation -eq 'install')
-    Write-VCRedistLog -Message ('开始操作：{0}' -f $Operation) -Level INFO
+    Write-RedistLog -Message ('开始操作：{0}' -f $Operation) -Level INFO
 
     try {
         $rs = [runspacefactory]::CreateRunspace()
@@ -525,7 +525,7 @@ function Start-InstallRecommended {
 function Build-Report {
     param($AllDetection)
     $sb = New-Object System.Text.StringBuilder
-    $cfg = Get-VCRedistConfig
+    $cfg = Get-RedistConfig
     $null = $sb.AppendLine('============================================')
     $null = $sb.AppendLine(('  {0} · 诊断报告' -f $cfg.appName))
     $null = $sb.AppendLine('============================================')
@@ -534,7 +534,7 @@ function Build-Report {
     $null = $sb.AppendLine('')
 
     foreach ($d in @($AllDetection)) {
-        $m = Get-VCRedistModule -Id $d.Id
+        $m = Get-RedistModule -Id $d.Id
         $null = $sb.AppendLine(('【{0}】' -f $d.Title))
         $body = (& $m.ReportFn -Detection $d.Result).TrimEnd()
         foreach ($line in ($body -split '\r?\n')) {
@@ -560,20 +560,20 @@ function Copy-Report {
 
 function Clear-Cache {
     try {
-        $r = Clear-VCRedistCache
+        $r = Clear-RedistCache
         $freed = Format-Bytes $r.FreedBytes
         [System.Windows.MessageBox]::Show(('已清理 {0} 个缓存文件，释放 {1}' -f $r.RemovedCount, $freed), '清理缓存', 'OK', 'Information') | Out-Null
-        Write-VCRedistLog -Message ('清理缓存：{0} 个文件，释放 {1}' -f $r.RemovedCount, $freed) -Level INFO
+        Write-RedistLog -Message ('清理缓存：{0} 个文件，释放 {1}' -f $r.RemovedCount, $freed) -Level INFO
     } catch {
         [System.Windows.MessageBox]::Show(('清理失败：' + $_.Exception.Message), '错误', 'OK', 'Error') | Out-Null
-        Write-VCRedistLog -Message ('清理缓存失败：{0}' -f $_.Exception.Message) -Level ERROR
+        Write-RedistLog -Message ('清理缓存失败：{0}' -f $_.Exception.Message) -Level ERROR
     }
 }
 
 function Start-ListCheck {
     param([string]$ModuleId)
     if ($script:sync.Busy) { return }
-    $m = Get-VCRedistModule -Id $ModuleId
+    $m = Get-RedistModule -Id $ModuleId
     try {
         $det = & $m.DetectFn
         Update-ListModule -ModuleId $ModuleId -Detection $det
@@ -584,7 +584,7 @@ function Start-ListCheck {
             $SummaryText.Text = Build-SummaryText $script:AllDetection
         }
         $s = $det.Summary
-        Write-VCRedistLog -Message ('{0} 检测：{1}' -f $m.Title, $s.StateDetail) -Level INFO
+        Write-RedistLog -Message ('{0} 检测：{1}' -f $m.Title, $s.StateDetail) -Level INFO
         if ($s.StateKey -eq 'ok') {
             [System.Windows.MessageBox]::Show(('✅ {0} 组件均已就绪，无需修复。' -f $m.Title), ('{0} 检测成功' -f $m.Title), 'OK', 'Information') | Out-Null
         } else {
@@ -592,21 +592,21 @@ function Start-ListCheck {
         }
     } catch {
         [System.Windows.MessageBox]::Show(('检测失败：' + $_.Exception.Message), '错误', 'OK', 'Error') | Out-Null
-        Write-VCRedistLog -Message ('{0} 检测失败：{1}' -f $m.Title, $_.Exception.Message) -Level ERROR
+        Write-RedistLog -Message ('{0} 检测失败：{1}' -f $m.Title, $_.Exception.Message) -Level ERROR
     }
 }
 
 function Start-ListRepair {
     param([string]$ModuleId)
     if ($script:sync.Busy) { return }
-    $m = Get-VCRedistModule -Id $ModuleId
+    $m = Get-RedistModule -Id $ModuleId
     $r = [System.Windows.MessageBox]::Show(('将修复 {0}：从官方源下载并静默安装（期间会弹出 UAC 提权）。确定继续？' -f $m.Title), ('确认修复 {0}' -f $m.Title), 'YesNo', 'Information')
     if ($r -ne [System.Windows.MessageBoxResult]::Yes) { return }
     Start-Operation -Operation 'repair' -Payload $null -ModuleId $ModuleId
 }
 
 function Open-Log {
-    $path = Get-VCRedistLogPath
+    $path = Get-RedistLogPath
     if (Test-Path -LiteralPath $path) {
         try {
             Start-Process -FilePath 'notepad.exe' -ArgumentList ('"{0}"' -f $path)
@@ -639,7 +639,7 @@ $OpenLogBtn.Add_Click({ Open-Log })
 $CancelBtn.Add_Click({ $script:sync.CancelRequested = $true })
 
 # 各 Table 模块：行内按钮 / 勾选框（按模块网格逐一绑定，运行时用 DataContext 里的 ModuleId 分发）
-foreach ($m in (Get-VCRedistModules)) {
+foreach ($m in (Get-RedistModules)) {
     if ($m.Kind -ne 'Table') { continue }
     $grid = Find-Element ("Grid_" + $m.Id)
 
@@ -674,7 +674,7 @@ foreach ($m in (Get-VCRedistModules)) {
 }
 
 # 各 List 模块：检测 / 修复按钮（把 ModuleId 存进 Tag，避免闭包陷阱）
-foreach ($m in (Get-VCRedistModules)) {
+foreach ($m in (Get-RedistModules)) {
     if ($m.Kind -ne 'List') { continue }
     $id = $m.Id
     $checkBtn  = Find-Element ("CheckBtn_" + $id)
@@ -714,11 +714,11 @@ $timer.Add_Tick({
         if ($err) {
             $script:LogBox.Text = $s.LogLines
             $script:LogBox.ScrollToEnd()
-            Write-VCRedistLog -Message ('操作失败：{0} —— {1}' -f $op, $err) -Level ERROR
+            Write-RedistLog -Message ('操作失败：{0} —— {1}' -f $op, $err) -Level ERROR
             [System.Windows.MessageBox]::Show($err, '操作失败', 'OK', 'Error') | Out-Null
             Start-Operation -Operation 'detect' -Payload $null
         } else {
-            Write-VCRedistLog -Message ('操作完成：{0}' -f $op) -Level INFO
+            Write-RedistLog -Message ('操作完成：{0}' -f $op) -Level INFO
             switch ($op) {
                 'detect' {
                     Update-AllModuleDetection $res
@@ -808,7 +808,7 @@ $timer.Start()
 # ---------- 启动 ----------
 $window.Add_Loaded({ Start-Detect })
 $window.Add_Closed({
-    Write-VCRedistLog -Message '==== 程序退出 ====' -Level INFO
+    Write-RedistLog -Message '==== 程序退出 ====' -Level INFO
     $timer.Stop()
     try { $script:WorkerRunspace.Dispose() } catch { }
 })

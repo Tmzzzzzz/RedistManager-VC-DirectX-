@@ -8,8 +8,8 @@ Windows 桌面 GUI 工具，管理微软 VC 2005-2022 / DirectX 等运行库：*
 
 ## 架构（模块化，切勿把新运行库写死进主程序）
 
-- `VCRedistManager.ps1`：薄 GUI 壳，**模块无关**。页签 / 检测 / 安装 / 卸载 / 修复 / 报告全部由「模块注册表」驱动。
-- `VCRedistManager.Core.psm1`：共享基础设施 + 模块自动发现（`Initialize-VCRedistModules`）+ 分发（`Get-AllModuleDetection` / `Invoke-ModuleOperation` / `Invoke-AllModuleActions`）。
+- `RedistManager.ps1`：薄 GUI 壳，**模块无关**。页签 / 检测 / 安装 / 卸载 / 修复 / 报告全部由「模块注册表」驱动。
+- `RedistManager.Core.psm1`：共享基础设施 + 模块自动发现（`Initialize-RedistModules`）+ 分发（`Get-AllModuleDetection` / `Invoke-ModuleOperation` / `Invoke-AllModuleActions`）。
 - `Modules/*.psm1`：每个运行库模块一个文件，按下面「模块契约」实现。**加一个模块 = 加一个文件**，其余自动接上。
 - `config.json`：顶层共享配置（`appName` / `appVersion` / `downloadDir` / `signatureSubject`）+ `modules.{id}`。
 
@@ -31,7 +31,7 @@ Windows 桌面 GUI 工具，管理微软 VC 2005-2022 / DirectX 等运行库：*
   - 行对象必须含：`Name、Category、StateKey、StateText、Detail`。
   - `Summary`：`{ StateKey, StateText, StateDetail }`，`StateKey` ∈ `ok / partial / missing`。
   - 修复逻辑写在 `Invoke-<Id>Action -Operation 'repair'` 内。
-- **共享能力**：模块内直接调用 Core 导出函数（`Get-ModuleConfig -Id <id>`、`Get-DllCheckResult`、`Start-VCRedistDownload`、`Test-VCRedistPackage`、`Invoke-ElevatedProcess`、`Test-ExitSuccess`、`Write-VCRedistLog`、`Format-Bytes`、`Get-DownloadDirectory`、`Test-Is64BitOS` 等）。**不要**访问 `$script:Config`（那是 Core 私有作用域；取本模块配置用 `Get-ModuleConfig -Id <id>`）。
+- **共享能力**：模块内直接调用 Core 导出函数（`Get-ModuleConfig -Id <id>`、`Get-DllCheckResult`、`Start-RedistDownload`、`Test-RedistPackage`、`Invoke-ElevatedProcess`、`Test-ExitSuccess`、`Write-RedistLog`、`Format-Bytes`、`Get-DownloadDirectory`、`Test-Is64BitOS` 等）。**不要**访问 `$script:Config`（那是 Core 私有作用域；取本模块配置用 `Get-ModuleConfig -Id <id>`）。
 
 ## 硬性安全 / 编码约束（不可违反）
 
@@ -43,7 +43,7 @@ Windows 桌面 GUI 工具，管理微软 VC 2005-2022 / DirectX 等运行库：*
 
 ## 关键坑（容易踩，勿重犯）
 
-- `Initialize-VCRedistModules` 内的 `Import-Module` **必须带 `-Global`**：该函数在 Core 的模块作用域内运行，不带 `-Global` 会把模块导入到 Core 自己的会话状态，主脚本按命名约定调用会「找不到命令」。
+- `Initialize-RedistModules` 内的 `Import-Module` **必须带 `-Global`**：该函数在 Core 的模块作用域内运行，不带 `-Global` 会把模块导入到 Core 自己的会话状态，主脚本按命名约定调用会「找不到命令」。
 - 模块函数取配置一律用 `Get-ModuleConfig -Id <id>`，**不要**用 `$script:Config`。
 - WPF 行内按钮路由事件里 `$e.Source` 可能是容器（DataGrid），**要用 `$e.OriginalSource` + `VisualTreeHelper` 向上回溯**定位真正按钮。
 - 各 List 模块的「检测/修复」按钮回调通过 `.Tag` 传递 ModuleId（避免 PowerShell 闭包陷阱，勿改成直接捕获循环变量 `$id`）。
@@ -56,7 +56,7 @@ Windows 桌面 GUI 工具，管理微软 VC 2005-2022 / DirectX 等运行库：*
 4. （可选）在 `config.json` 的 `modules` 下加 `<new>`（小写）配置段。
 5. 保存为 UTF-8 with BOM，运行 `Build-Exe.ps1` 重新打包。
 
-**无需改动 `VCRedistManager.ps1` / `Core.psm1`。**
+**无需改动 `RedistManager.ps1` / `Core.psm1`。**
 
 ## 构建 / 校验命令
 
@@ -65,7 +65,7 @@ Windows 桌面 GUI 工具，管理微软 VC 2005-2022 / DirectX 等运行库：*
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Build-Exe.ps1
 
 # 语法校验（应为 0 errors）
-[System.Management.Automation.Language.Parser]::ParseFile('.\VCRedistManager.ps1', [ref]$t, [ref]$e); $e.Count
+[System.Management.Automation.Language.Parser]::ParseFile('.\RedistManager.ps1', [ref]$t, [ref]$e); $e.Count
 ```
 
-交付物是单个 `VCRedistManager.exe`（双击运行，解压到 `%LOCALAPPDATA%\VCRedistManager\`）。
+交付物是单个 `RedistManager.exe`（双击运行，解压到 `%LOCALAPPDATA%\RedistManager\`）。

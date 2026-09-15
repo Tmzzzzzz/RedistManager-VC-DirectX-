@@ -1,7 +1,7 @@
 {
   "appName": "运行库管理工具",
   "appVersion": "1.1.0",
-  "downloadDir": "%TEMP%\\VCRedistManager",
+  "downloadDir": "%TEMP%\\RedistManager",
   "signatureSubject": "Microsoft Corporation",
 
   "modules": {

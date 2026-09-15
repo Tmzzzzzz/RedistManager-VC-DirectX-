@@ -6,8 +6,8 @@
 #    · 导出 4 个函数：Get-DirectXManifest / Get-DirectXDetection /
 #      Invoke-DirectXAction / Get-DirectXReport
 #    · Kind = "List"（只读列表 + 「检测 / 修复」按钮）
-#    · 依赖 Core 导出的共享函数（Get-ModuleConfig / Start-VCRedistDownload /
-#      Test-VCRedistPackage / Invoke-ElevatedProcess 等）
+#    · 依赖 Core 导出的共享函数（Get-ModuleConfig / Start-RedistDownload /
+#      Test-RedistPackage / Invoke-ElevatedProcess 等）
 #  本文件必须保存为 UTF-8 with BOM。
 # ============================================================
 
@@ -98,9 +98,9 @@ function Invoke-DirectXAction {
         $dest = Join-Path (Get-DownloadDirectory) $inst.fileName
 
         $Sync.StatusText = '正在下载 DirectX 运行库 ...'
-        Start-VCRedistDownload -Url $inst.url -DestPath $dest -Sync $Sync | Out-Null
+        Start-RedistDownload -Url $inst.url -DestPath $dest -Sync $Sync | Out-Null
         $Sync.StatusText = '正在校验 DirectX 运行库（数字签名 / SHA256）...'
-        $chk = Test-VCRedistPackage -Path $dest -ExpectedSha256 ([string]$inst.sha256)
+        $chk = Test-RedistPackage -Path $dest -ExpectedSha256 ([string]$inst.sha256)
         if (-not $chk.Passed) { throw ('校验失败：签名={0} 哈希={1}' -f $chk.SignatureOk, $chk.HashOk) }
         $Sync.LogLines += ('  下载完成：{0}（签名：{1}）' -f (Format-Bytes (Get-Item $dest).Length), $chk.SignatureOk) + "`r`n"
 
@@ -120,15 +120,15 @@ function Invoke-DirectXAction {
         if (Test-ExitSuccess $code2) {
             $results += '✓ DirectX 运行库安装成功'
             $Sync.LogLines += '  DirectX 修复完成' + "`r`n"
-            Write-VCRedistLog -Message ('DirectX 修复成功（退出码 {0}）' -f $code2) -Level INFO
+            Write-RedistLog -Message ('DirectX 修复成功（退出码 {0}）' -f $code2) -Level INFO
         } else {
             $results += ('✗ DirectX 运行库（退出码 {0}）' -f $code2)
-            Write-VCRedistLog -Message ('DirectX 修复未成功（退出码 {0}）' -f $code2) -Level WARN
+            Write-RedistLog -Message ('DirectX 修复未成功（退出码 {0}）' -f $code2) -Level WARN
         }
     } catch {
         $Sync.LogLines += ('  失败：{0}' -f $_.Exception.Message) + "`r`n"
         $results += ('✗ DirectX：{0}' -f $_.Exception.Message)
-        Write-VCRedistLog -Message ('DirectX 修复失败：{0}' -f $_.Exception.Message) -Level ERROR
+        Write-RedistLog -Message ('DirectX 修复失败：{0}' -f $_.Exception.Message) -Level ERROR
     }
 
     $Sync.ProgressPercent = 0

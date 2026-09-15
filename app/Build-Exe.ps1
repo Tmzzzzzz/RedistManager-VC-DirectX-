@@ -1,5 +1,5 @@
 # Build-Exe.ps1
-# Compiles VCRedistManager.exe (self-contained host) from Bootstrapper.cs.
+# Compiles RedistManager.exe (self-contained host) from Bootstrapper.cs.
 # Usage:  powershell -NoProfile -ExecutionPolicy Bypass -File .\Build-Exe.ps1
 
 $ErrorActionPreference = 'Stop'
@@ -13,14 +13,14 @@ if (-not $automation) { throw 'System.Management.Automation.dll not found in GAC
 
 $winforms = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\System.Windows.Forms.dll'
 
-$out = Join-Path $PSScriptRoot 'VCRedistManager.exe'
+$out = Join-Path $PSScriptRoot 'RedistManager.exe'
 $src = Join-Path $PSScriptRoot 'Bootstrapper.cs'
 
 $moduleFiles = Get-ChildItem (Join-Path $PSScriptRoot 'Modules') -Filter '*.psm1' -File -ErrorAction SilentlyContinue | Sort-Object Name
 
 $resources = @(
-    "/resource:$($PSScriptRoot)\VCRedistManager.Core.psm1,VCRedistManager.Core.psm1",
-    "/resource:$($PSScriptRoot)\VCRedistManager.ps1,VCRedistManager.ps1",
+    "/resource:$($PSScriptRoot)\RedistManager.Core.psm1,RedistManager.Core.psm1",
+    "/resource:$($PSScriptRoot)\RedistManager.ps1,RedistManager.ps1",
     "/resource:$($PSScriptRoot)\config.json,config.json"
 )
 foreach ($f in $moduleFiles) {

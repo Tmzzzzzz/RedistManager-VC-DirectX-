@@ -9,7 +9,7 @@
 ## 一、技术栈
 
 - **PowerShell 5.1 + WPF (XAML)**：零依赖，Windows 自带，无需安装任何运行时 / SDK。
-- **单文件 exe（C# 启动器）**：`VCRedistManager.exe` 内嵌全部 PowerShell 源码，双击即运行，无 cmd / 无控制台窗口。
+- **单文件 exe（C# 启动器）**：`RedistManager.exe` 内嵌全部 PowerShell 源码，双击即运行，无 cmd / 无控制台窗口。
 - 直接调用注册表、MSI（`msiexec`）、Burn 引导包（Package Cache）、HTTP 下载。
 - 安装 / 卸载通过 `Start-Process -Verb RunAs` 触发 UAC 提权（工具本身以普通权限运行，仅特权操作时提权）。
 
@@ -21,9 +21,9 @@
 
 ```
 app/
-├── VCRedistManager.exe          # ★ 交付物：双击启动（自包含，无 cmd / 无控制台）
-├── VCRedistManager.ps1          # 源码（主程序 WPF 入口，模块无关，嵌入 exe，UTF-8 BOM）
-├── VCRedistManager.Core.psm1    # 源码（共享基础设施 + 模块注册表 / 分发，UTF-8 BOM）
+├── RedistManager.exe          # ★ 交付物：双击启动（自包含，无 cmd / 无控制台）
+├── RedistManager.ps1          # 源码（主程序 WPF 入口，模块无关，嵌入 exe，UTF-8 BOM）
+├── RedistManager.Core.psm1    # 源码（共享基础设施 + 模块注册表 / 分发，UTF-8 BOM）
 ├── Modules/                     # ★ 运行库模块（每个模块一个 .psm1，自动被发现）
 │   ├── Vc.psm1                  #   VC 运行库模块（检测 / 安装 / 卸载 / 报告）
 │   └── DirectX.psm1             #   DirectX 运行库模块（检测 / 修复 / 报告）
@@ -40,12 +40,12 @@ app/
 
 ### 启动
 
-**双击 `VCRedistManager.exe`** 即可，无需 cmd、无控制台窗口、无第三方运行库依赖。
+**双击 `RedistManager.exe`** 即可，无需 cmd、无控制台窗口、无第三方运行库依赖。
 
-> 工作原理：exe 内嵌了全部 PowerShell 源码，首次运行时解压到 `%LOCALAPPDATA%\VCRedistManager\` 并在当前 STA 线程上托管运行。
+> 工作原理：exe 内嵌了全部 PowerShell 源码，首次运行时解压到 `%LOCALAPPDATA%\RedistManager\` 并在当前 STA 线程上托管运行。
 > - 源码改动后，运行 `.\Build-Exe.ps1` 重新生成 exe。
-> - 如需手动更新哈希 / 版本，编辑 `%LOCALAPPDATA%\VCRedistManager\config.json` 即可（exe 不会覆盖已存在的配置）。
-> - 源码直接运行（开发调试）：`powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\VCRedistManager.ps1`
+> - 如需手动更新哈希 / 版本，编辑 `%LOCALAPPDATA%\RedistManager\config.json` 即可（exe 不会覆盖已存在的配置）。
+> - 源码直接运行（开发调试）：`powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\RedistManager.ps1`
 
 - 首次启动会自动进行「检查全部」，随后在界面右上角显示汇总。
 - 界面采用分级页签，页签由**模块注册表**自动生成（不是写死），当前两个模块并列：
@@ -61,9 +61,9 @@ app/
 | **安装勾选项 / 行内「安装」** | 从微软官方源下载 → 校验签名/哈希 → 静默安装（UAC 提权）；已安装项可「覆盖重装」以修复损坏 |
 | **卸载勾选项 / 行内「卸载」** | 二次确认后静默卸载（UAC 提权），多子版本一并列出 |
 | **复制诊断报告** | 生成文本报告并复制到剪贴板 |
-| **清理缓存** | 删除临时下载缓存（`%TEMP%\VCRedistManager`），释放磁盘空间 |
+| **清理缓存** | 删除临时下载缓存（`%TEMP%\RedistManager`），释放磁盘空间 |
 | **DirectX 检测 / 修复**（「DirectX 运行库」页签） | 逐项检测旧游戏 / 软件依赖的 DirectX 9/10/11 组件（`d3dx9_43.dll`、`d3dx10_43.dll`、`d3dx11_43.dll`、`d3dcompiler_43.dll`、`xinput1_3.dll`、`XAudio2_7.dll`），缺失时从官方源下载并静默安装（UAC 提权） |
-| **打开日志** | 用记事本打开操作日志 `%LOCALAPPDATA%\VCRedistManager\logs\VCRedistManager.log` |
+| **打开日志** | 用记事本打开操作日志 `%LOCALAPPDATA%\RedistManager\logs\RedistManager.log` |
 
 ### 操作反馈与日志
 
@@ -188,19 +188,19 @@ DirectX 安装流程：下载 → 校验签名/哈希 → 以 `/Q /T:目录` 静
 
 含中文的 `.ps1` / `.psm1` 必须保存为 **UTF-8 with BOM**。否则在中文 Windows（GBK 代码页）下会被按 ANSI 解析，中文乱码并直接导致语法错误。
 
-当前仓库中的 `VCRedistManager.ps1`、`VCRedistManager.Core.psm1` 及 `Modules\*.psm1` 均已带 BOM。若自行编辑后出现乱码，请用以下方式重新保存为 UTF-8 BOM：
+当前仓库中的 `RedistManager.ps1`、`RedistManager.Core.psm1` 及 `Modules\*.psm1` 均已带 BOM。若自行编辑后出现乱码，请用以下方式重新保存为 UTF-8 BOM：
 
 ```powershell
 $enc = New-Object System.Text.UTF8Encoding($true)
-$c = [System.IO.File]::ReadAllText('.\VCRedistManager.ps1')
-[System.IO.File]::WriteAllText('.\VCRedistManager.ps1', $c, $enc)
+$c = [System.IO.File]::ReadAllText('.\RedistManager.ps1')
+[System.IO.File]::WriteAllText('.\RedistManager.ps1', $c, $enc)
 ```
 
 ---
 
 ## 十、打包 / 分发
 
-- **交付（推荐）：** 复制 `VCRedistManager.exe` 单个文件到目标机，双击即可。零依赖，目标机仅需 Windows 10/11（自带 .NET Framework 4.x + PowerShell 5.1）。
+- **交付（推荐）：** 复制 `RedistManager.exe` 单个文件到目标机，双击即可。零依赖，目标机仅需 Windows 10/11（自带 .NET Framework 4.x + PowerShell 5.1）。
 - **重新构建：** 修改源码后，在 PowerShell 中运行 `.\Build-Exe.ps1`（使用本机 .NET Framework 自带的 `csc.exe` 编译，将 `.ps1`/`.psm1`/`config.json` 重新嵌入）。
 - **自定义图标 / 版本信息：** 编辑 `Bootstrapper.cs` 顶部的 `AssemblyTitle` 等特性后重新构建。
 
@@ -229,7 +229,7 @@ $c = [System.IO.File]::ReadAllText('.\VCRedistManager.ps1')
    - 行对象必须含：`Name、Category、StateKey、StateText、Detail`。
    - `Summary`：`{ StateKey, StateText, StateDetail }`，`StateKey` ∈ `ok / partial / missing`。
    - 在 `Invoke-<Id>Action -Operation 'repair'` 中实现修复。
-5. **共享能力**：模块内可直接调用 Core 导出的函数（`Get-ModuleConfig -Id`、`Get-DllCheckResult`、`Start-VCRedistDownload`、`Test-VCRedistPackage`、`Invoke-ElevatedProcess`、`Test-ExitSuccess`、`Write-VCRedistLog`、`Format-Bytes`、`Get-DownloadDirectory` 等）。**不要**访问 `$script:Config`（那是 Core 自己的作用域，请用 `Get-ModuleConfig -Id <id>` 取本模块配置）。
+5. **共享能力**：模块内可直接调用 Core 导出的函数（`Get-ModuleConfig -Id`、`Get-DllCheckResult`、`Start-RedistDownload`、`Test-RedistPackage`、`Invoke-ElevatedProcess`、`Test-ExitSuccess`、`Write-RedistLog`、`Format-Bytes`、`Get-DownloadDirectory` 等）。**不要**访问 `$script:Config`（那是 Core 自己的作用域，请用 `Get-ModuleConfig -Id <id>` 取本模块配置）。
 
 ### 添加步骤清单
 
@@ -240,7 +240,7 @@ $c = [System.IO.File]::ReadAllText('.\VCRedistManager.ps1')
 5. （可选）在 `config.json` 的 `modules` 下加 `<new>`（小写）配置段；
 6. 保存为 **UTF-8 with BOM**，运行 `Build-Exe.ps1` 重新打包。
 
-无需改动 `VCRedistManager.ps1` / `Core.psm1`——它们会自动发现、注册并按 `Order` 排序生成页签与分发操作。
+无需改动 `RedistManager.ps1` / `Core.psm1`——它们会自动发现、注册并按 `Order` 排序生成页签与分发操作。
 
 ---
 

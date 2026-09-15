@@ -2,7 +2,7 @@
 //  Bootstrapper.cs —— 运行库管理工具 启动器（编译为单文件 exe）
 //
 //  作用：把嵌入的 PowerShell 源码（.ps1/.psm1/config.json）解压到
-//        %LOCALAPPDATA%\VCRedistManager，并在当前 STA 线程上托管
+//        %LOCALAPPDATA%\RedistManager，并在当前 STA 线程上托管
 //        PowerShell 运行 WPF 界面。无需 cmd、无控制台窗口。
 //
 //  编译：见 Build-Exe.ps1（csc.exe /target:winexe）
@@ -22,13 +22,13 @@ using System.Management.Automation.Runspaces;
 [assembly: AssemblyVersion("1.1.0.0")]
 [assembly: AssemblyFileVersion("1.1.0.0")]
 
-namespace VCRedistManager
+namespace RedistManager
 {
     internal static class Program
     {
         private static readonly string WorkDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "VCRedistManager");
+            "RedistManager");
 
         private static Mutex _mutex;
 
@@ -37,7 +37,7 @@ namespace VCRedistManager
         {
             // 单实例：避免并发解压/多开
             bool createdNew;
-            _mutex = new Mutex(true, "VCRedistManager.SingleInstance", out createdNew);
+            _mutex = new Mutex(true, "RedistManager.SingleInstance", out createdNew);
             if (!createdNew)
             {
                 MessageBox.Show(
@@ -108,7 +108,7 @@ namespace VCRedistManager
 
         private static void RunScript()
         {
-            string mainPath = Path.Combine(WorkDir, "VCRedistManager.ps1");
+            string mainPath = Path.Combine(WorkDir, "RedistManager.ps1");
 
             InitialSessionState iss = InitialSessionState.CreateDefault();
             iss.ExecutionPolicy = Microsoft.PowerShell.ExecutionPolicy.Bypass;

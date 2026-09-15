@@ -1,12 +1,12 @@
 # ============================================================
-#  .gitignore —— 运行库管理工具（VCRedistManager）
+#  .gitignore —— 运行库管理工具（RedistManager）
 # ============================================================
 
 # ---------- 构建产物 ----------
-# VCRedistManager.exe 由 Build-Exe.ps1 生成，默认不入库。
+# RedistManager.exe 由 Build-Exe.ps1 生成，默认不入库。
 # 如需在 GitHub 上直接提供可执行文件，请改用 Releases 发布；
 # 若你确实想直接把 exe 提交进仓库，删除下面这行即可。
-app/VCRedistManager.exe
+app/RedistManager.exe
 
 # ---------- Claude Code 本地配置 ----------
 # 内含本机权限放行列表，属于个人本地设置，不应公开。
