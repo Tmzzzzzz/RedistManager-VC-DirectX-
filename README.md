@@ -28,23 +28,27 @@
 
 ## 📦 快速开始
 
-### 方式一：直接运行（推荐）
-
 1. 到本仓库 **Releases** 页面下载 `RedistManager.exe`（单个文件）。
 2. 双击运行即可，**无需安装**，也无需任何前置环境（Windows 10/11 自带所需组件）。
 
-> 若 Releases 中暂无构建产物，请参考「方式二」自行编译。
+> 若 Releases 中暂无构建产物，请参考下方「开发者：从源码构建与调试」一节自行编译。
 
-### 方式二：从源码构建
+---
+
+## 🧑‍💻 开发者：从源码构建与调试
+
+以下两种方式面向开发者，需先获取源码：`git clone` 本仓库，或在 GitHub 页面「Code → Download ZIP」下载源码并解压，然后在**仓库根目录**执行。
+
+### 从源码构建（生成 exe）
 
 ```powershell
-# 在 app 目录下，使用系统自带 csc.exe 重新编译单文件 exe
+# 在仓库根目录下，使用系统自带 csc.exe 重新编译单文件 exe
 powershell -NoProfile -ExecutionPolicy Bypass -File .\app\Build-Exe.ps1
 ```
 
 构建产物为 `app\RedistManager.exe`。
 
-### 方式三：源码直接运行（开发调试）
+### 源码直接运行（开发调试）
 
 ```powershell
 powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\app\RedistManager.ps1
